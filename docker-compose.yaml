@@ -6,6 +6,8 @@ services:
     image: traefik:v3.4.0
     container_name: traefik
     restart: always
+    networks:
+      - default
     ports:
       - 8080:80
       - 8443:443
@@ -13,16 +15,13 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml
       - ./traefik/acme.json:/acme.json
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.traefik.rule=Host(`traefik.teashaped.dev`)"
-      - "traefik.http.routers.traefik.service=api@internal"
-      - "traefik.http.routers.traefik.middlewares=auth"
 
   postgres:
     image: postgres:17-alpine
     container_name: postgres
     restart: always
+    networks:
+      - default
     volumes:
       - /data/postgres:/var/lib/postgresql/data
     environment:
@@ -39,19 +38,24 @@ services:
     image: matrixdotorg/synapse:v1.130.0
     container_name: synapse
     restart: always
+    networks:
+      - default
     volumes:
-      - /data/synapse:/data
+      - ./synapse:/data
     depends_on:
       - postgres
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.synapse.rule=Host(`matrix.teashaped.dev`)"
-      - "traefik.http.routers.synapse.entrypoints=websecure"
-      - "traefik.http.routers.synapse.tls=true"
-      - "traefik.http.routers.synapse.tls.certresolver=letsencrypt"
+      # - "traefik.http.routers.synapse.entrypoints=websecure"
+      # - "traefik.http.routers.synapse.tls=true"
+      # - "traefik.http.routers.synapse.tls.certresolver=letsencrypt"
       - "traefik.http.services.synapse.loadbalancer.server.port=8008"
 
 volumes:
   postgres_data:
     driver: local
 
+networks:
+  default:
+    driver: bridge
